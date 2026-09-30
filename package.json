@@ -10,7 +10,7 @@
     "dev:client": "vite --config client/vite.config.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "node --max-old-space-size=384 ./node_modules/vite/bin/vite.js build --config client/vite.config.ts",
-    "build:server": "node --max-old-space-size=384 ./node_modules/typescript/bin/tsc -p server/tsconfig.json",
+    "build:server": "node --max-old-space-size=384 ./node_modules/typescript/bin/tsc -p server/tsconfig.json && echo [SUCCESS] Backend API compiled successfully into dist/server!",
     "start": "node --max-old-space-size=384 dist/server/index.js",
     "seed": "tsx server/db/seed.ts"
   },
