@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Sparkles, Loader2, FileText, CheckSquare, Briefcase, Calendar, Building2, HelpCircle, ArrowRight } from 'lucide-react';
+import { Bot, Send, Sparkles, Loader2, FileText, CheckSquare, Briefcase, Calendar, Building2, HelpCircle, ArrowRight, User, Clock, ChevronDown, Layers } from 'lucide-react';
 import { api } from '../services/api.js';
-import { AIChatResponse } from '../../../shared/types/index.js';
+import { AIChatResponse, Task } from '../../../shared/types/index.js';
 import { Link } from 'react-router-dom';
+import { TaskStatusBadge, TaskPriorityBadge } from '../components/Badges.js';
+import { TaskAnalysisModal } from '../components/TaskAnalysisModal.js';
 
 interface Message {
   id: string;
@@ -30,7 +32,7 @@ export const AIAssistantPage: React.FC = () => {
         answer: 'I am ready to assist with enterprise operations, cross-department dependencies, and status syntheses.',
         key_points: [
           'Direct access to current department workloads',
-          'Automated risk and bottleneck detection',
+          'Deep task feasibility and roadmap decomposition',
           'Contextual citations to internal tasks and SOPs'
         ],
         sources: [],
@@ -46,7 +48,16 @@ export const AIAssistantPage: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+  const [analysisModalTaskId, setAnalysisModalTaskId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api.getTasks().then(setTasks).catch(() => {});
+  }, []);
+
+  const selectedTask = tasks.find(t => t.id === selectedTaskId);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -140,6 +151,77 @@ export const AIAssistantPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Task Selection and Quick Analysis Bar */}
+      <div className="px-6 py-2.5 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5 shrink-0">
+            <Layers className="w-3.5 h-3.5 text-brand-400" />
+            Select Task to Analyze:
+          </span>
+          <select
+            value={selectedTaskId}
+            onChange={(e) => setSelectedTaskId(e.target.value)}
+            className="flex-1 enterprise-input text-xs py-1.5 px-2.5 bg-slate-900 border-slate-800 rounded-lg text-slate-200 focus:border-brand-500"
+          >
+            <option value="">-- Choose an active task to run AI analysis --</option>
+            {tasks.map((task) => (
+              <option key={task.id} value={task.id}>
+                [{task.priority.toUpperCase()}] {task.title} ({task.status.replace('_', ' ')})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {selectedTask && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAnalysisModalTaskId(selectedTask.id)}
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Full AI Deep Analysis</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Selected Task Highlight Card */}
+      {selectedTask && (
+        <div className="mx-6 mt-3 p-3 rounded-xl bg-slate-900/90 border border-brand-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md shrink-0">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-100 truncate">{selectedTask.title}</span>
+              <TaskStatusBadge status={selectedTask.status} />
+              <TaskPriorityBadge priority={selectedTask.priority} />
+            </div>
+            {selectedTask.description && (
+              <p className="text-xs text-slate-400 line-clamp-1">{selectedTask.description}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+            <button
+              onClick={() => handleSend(`Analyze this task and assess its risks and dependencies: "${selectedTask.title}"`)}
+              className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+            >
+              Ask Risks
+            </button>
+            <button
+              onClick={() => handleSend(`What are the step-by-step technical implementation phases for "${selectedTask.title}"?`)}
+              className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+            >
+              Phases
+            </button>
+            <button
+              onClick={() => setAnalysisModalTaskId(selectedTask.id)}
+              className="text-xs px-2.5 py-1 rounded-lg bg-brand-500/20 text-brand-300 border border-brand-500/30 hover:bg-brand-500/30 transition-colors font-medium flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3" />
+              Roadmap & Subtasks
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Messages Stream */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
@@ -291,6 +373,17 @@ export const AIAssistantPage: React.FC = () => {
           </button>
         </form>
       </div>
+
+      {/* Task Analysis Deep Modal */}
+      {analysisModalTaskId && (
+        <TaskAnalysisModal
+          taskId={analysisModalTaskId}
+          onClose={() => setAnalysisModalTaskId(null)}
+          onSubtasksCreated={() => {
+            api.getTasks().then(setTasks).catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 };

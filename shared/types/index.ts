@@ -249,6 +249,31 @@ export interface AITaskGenerationResponse {
   tasks: AIGeneratedTaskItem[];
 }
 
+export interface AITaskAnalysisSubtask {
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  estimated_hours?: number;
+}
+
+export interface AITaskAnalysisPhase {
+  phase: string;
+  steps: string[];
+}
+
+export interface AITaskAnalysisResponse {
+  task_id: string;
+  task_title: string;
+  feasibility_score: number;
+  executive_summary: string;
+  action_plan: AITaskAnalysisPhase[];
+  blockers_and_risks: string[];
+  prerequisites: string[];
+  estimated_completion_days: number;
+  recommended_subtasks: AITaskAnalysisSubtask[];
+  confidence_rating: 'high' | 'medium' | 'low';
+}
+
 export interface MeetingAnalysisActionItem {
   title: string;
   description: string;

@@ -278,4 +278,55 @@ router.post('/generate-report', authenticateToken, async (req: Request, res: Res
   }
 });
 
+// POST /api/ai/analyze-task
+router.post('/analyze-task', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const orgId = req.user!.organization_id;
+    const { task_id, query } = req.body;
+
+    if (!task_id) {
+      return res.status(400).json({ error: 'task_id is required' });
+    }
+
+    // Retrieve task with full metadata
+    const taskRes = await db.query(
+      `SELECT t.*, d.name as department_name, p.name as project_name, 
+              u.first_name || ' ' || u.last_name as assignee_name
+       FROM tasks t
+       LEFT JOIN departments d ON d.id = t.department_id
+       LEFT JOIN projects p ON p.id = t.project_id
+       LEFT JOIN users u ON u.id = t.assignee_id
+       WHERE t.id = $1 AND t.organization_id = $2`,
+      [task_id, orgId]
+    );
+
+    if (taskRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found or access denied.' });
+    }
+
+    const task = taskRes.rows[0];
+
+    // Retrieve task dependencies
+    const depRes = await db.query(
+      `SELECT td.dependency_type, pt.title as prerequisite_title, pt.status as prerequisite_status
+       FROM task_dependencies td
+       JOIN tasks pt ON pt.id = td.prerequisite_task_id
+       WHERE td.task_id = $1`,
+      [task_id]
+    );
+
+    const analysis = await aiService.analyzeTask(task, depRes.rows, query);
+
+    await logActivity(orgId, req.user!.id, 'task.ai_analyzed', 'task', task.id, {
+      task_title: task.title,
+      feasibility_score: analysis.feasibility_score
+    });
+
+    return res.json(analysis);
+  } catch (error: any) {
+    console.error('AI analyze task error:', error);
+    return res.status(500).json({ error: 'Failed to analyze task with AI' });
+  }
+});
+
 export default router;

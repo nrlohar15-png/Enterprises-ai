@@ -6,6 +6,7 @@ import { Task, Project, Department, TaskStatus, TaskPriority } from '../../../sh
 import { TaskStatusBadge, TaskPriorityBadge } from '../components/Badges.js';
 import { TaskFormModal } from '../components/TaskFormModal.js';
 import { AITaskGeneratorModal } from '../components/AITaskGeneratorModal.js';
+import { TaskAnalysisModal } from '../components/TaskAnalysisModal.js';
 
 export const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -23,6 +24,7 @@ export const TasksPage: React.FC = () => {
   // Modals
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [aiTaskModalOpen, setAiTaskModalOpen] = useState(false);
+  const [analysisTaskId, setAnalysisTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const fetchAll = async () => {
@@ -224,7 +226,16 @@ export const TasksPage: React.FC = () => {
               </div>
 
               {/* Action dropdown and details button */}
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setAnalysisTaskId(task.id)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/30 text-xs font-medium transition-colors"
+                  title="Deep AI Task Analysis & Step-by-Step Action Plan"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">AI Analyze</span>
+                </button>
+
                 <select
                   value={task.status}
                   onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
@@ -240,6 +251,7 @@ export const TasksPage: React.FC = () => {
                 <Link
                   to={`/tasks/${task.id}`}
                   className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                  title="View Task Details"
                 >
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -266,6 +278,13 @@ export const TasksPage: React.FC = () => {
         onClose={() => setAiTaskModalOpen(false)}
         onTasksCreated={fetchAll}
         departments={departments}
+      />
+
+      <TaskAnalysisModal
+        taskId={analysisTaskId}
+        isOpen={!!analysisTaskId}
+        onClose={() => setAnalysisTaskId(null)}
+        onSubtasksCreated={fetchAll}
       />
     </div>
   );

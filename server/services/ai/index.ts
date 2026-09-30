@@ -7,6 +7,7 @@ import {
   MeetingAnalysisSchema,
   AIInsightResponseSchema,
   ReportSchema,
+  AITaskAnalysisSchema,
 } from '../../../shared/schemas/index.js';
 import {
   AIChatResponse,
@@ -15,6 +16,7 @@ import {
   MeetingAnalysisResponse,
   AIInsightResponse,
   ExecutiveReportResponse,
+  AITaskAnalysisResponse,
 } from '../../../shared/types/index.js';
 
 const SYSTEM_PROMPT = `You are an Enterprise AI Operations Assistant.
@@ -581,6 +583,169 @@ Return a JSON conforming to:
         'Rebalance operational tickets from overburdened DevOps personnel to secondary engineers.',
         'Implement daily 15-minute cross-department blockers triage.'
       ]
+    };
+  }
+
+  // 15.6 Task Deep-Dive Analysis
+  async analyzeTask(task: any, dependencies: any[] = [], userQuery?: string): Promise<AITaskAnalysisResponse> {
+    const prompt = `
+[TASK FOR DEEP OPERATIONAL ANALYSIS]:
+ID: "${task.id}"
+Title: "${task.title}"
+Description: "${task.description || 'No detailed description provided.'}"
+Status: "${task.status}"
+Priority: "${task.priority}"
+Due Date: "${task.due_date || 'None'}"
+Department: "${task.department_name || 'Organization'}"
+Assignee: "${task.assignee_name || 'Unassigned'}"
+Dependencies: ${JSON.stringify(dependencies.map(d => ({ type: d.dependency_type, prereq: d.prerequisite_title, status: d.prerequisite_status })))}
+
+${userQuery ? `[USER INQUIRY / FOCUS QUESTION]:\n"${userQuery}"` : ''}
+
+Perform an expert, actionable enterprise task analysis.
+Determine the feasibility, step-by-step technical and operational execution plan, risks/blockers, prerequisites, and 2-4 recommended subtasks with estimated hours.
+
+Return ONLY a valid JSON object matching this schema:
+{
+  "task_id": "${task.id}",
+  "task_title": "${task.title.replace(/"/g, '\\"')}",
+  "feasibility_score": 85,
+  "executive_summary": "Concise 2-3 sentence overview of this task, its strategic importance, and readiness to execute.",
+  "action_plan": [
+    {
+      "phase": "Phase 1: Preparation & Prerequisites",
+      "steps": ["Step 1", "Step 2"]
+    },
+    {
+      "phase": "Phase 2: Core Execution & Implementation",
+      "steps": ["Step 1", "Step 2"]
+    },
+    {
+      "phase": "Phase 3: Validation, Testing & Handover",
+      "steps": ["Step 1", "Step 2"]
+    }
+  ],
+  "blockers_and_risks": ["Specific operational blocker or risk 1", "Risk 2"],
+  "prerequisites": ["Required access, tool, or prerequisite task"],
+  "estimated_completion_days": 3,
+  "recommended_subtasks": [
+    {
+      "title": "Subtask title",
+      "description": "Clear actionable description",
+      "priority": "high",
+      "estimated_hours": 4
+    }
+  ],
+  "confidence_rating": "high"
+}
+`;
+
+    const rawJson = await this.callGeminiWithJson(prompt);
+    if (rawJson) {
+      try {
+        const parsed = JSON.parse(rawJson);
+        const validated = AITaskAnalysisSchema.parse(parsed);
+        return validated as AITaskAnalysisResponse;
+      } catch (err: any) {
+        console.warn('AI Task Analysis schema parse failed, using fallback engine:', err.message);
+      }
+    }
+
+    return this.fallbackAnalyzeTask(task, dependencies, userQuery);
+  }
+
+  private fallbackAnalyzeTask(task: any, dependencies: any[] = [], userQuery?: string): AITaskAnalysisResponse {
+    const isCritical = task.priority === 'critical' || task.priority === 'high';
+    const hasBlockers = task.status === 'blocked' || dependencies.some(d => d.prerequisite_status !== 'completed');
+    
+    let feasibility = 88;
+    if (hasBlockers) feasibility -= 25;
+    if (isCritical) feasibility -= 10;
+    if (!task.assignee_id) feasibility -= 15;
+    feasibility = Math.max(35, Math.min(95, feasibility));
+
+    const confidence: 'high' | 'medium' | 'low' = hasBlockers ? 'medium' : (feasibility > 80 ? 'high' : 'medium');
+
+    const blockersAndRisks: string[] = [];
+    if (dependencies.length > 0) {
+      for (const d of dependencies) {
+        blockersAndRisks.push(`Dependency: Awaiting "${d.prerequisite_title}" (Status: ${d.prerequisite_status})`);
+      }
+    }
+    if (task.status === 'blocked') {
+      blockersAndRisks.push('Task is currently flagged as blocked. Cross-functional intervention required.');
+    }
+    if (!task.assignee_name) {
+      blockersAndRisks.push('Unassigned ownership creates milestone drift risk.');
+    }
+    if (blockersAndRisks.length === 0) {
+      blockersAndRisks.push('Ensure test coverage and staging deployment verification before production rollout.');
+    }
+
+    const prerequisites = [
+      `Valid repository access and development environment setup for ${task.department_name || 'Engineering'}`,
+      dependencies.length > 0 ? `Verify sign-off on upstream prerequisite task: ${dependencies[0].prerequisite_title}` : 'Verify task specifications and acceptance criteria'
+    ];
+
+    const actionPlan = [
+      {
+        phase: 'Phase 1: Discovery & Specification Alignment',
+        steps: [
+          `Review acceptance criteria for "${task.title}" with ${task.assignee_name || 'the team lead'}.`,
+          'Inspect related architecture documents and SOP playbooks in the Knowledge Base.',
+          'Verify all necessary API credentials, access tokens, and staging environments.'
+        ]
+      },
+      {
+        phase: 'Phase 2: Core Engineering & Execution',
+        steps: [
+          `Execute the primary deliverable: ${task.description || task.title}.`,
+          'Commit incremental, type-safe modifications with unit test coverage.',
+          'Conduct peer code review and security lint analysis.'
+        ]
+      },
+      {
+        phase: 'Phase 3: Verification & Milestone Closure',
+        steps: [
+          'Perform end-to-end regression testing in staging environment.',
+          'Update documentation and relevant SOPs in Enterprise Knowledge Base.',
+          'Transition task status to Completed and notify project stakeholders.'
+        ]
+      }
+    ];
+
+    const recommendedSubtasks = [
+      {
+        title: `Technical setup and discovery for ${task.title}`,
+        description: `Review requirements and prepare initial implementation draft.`,
+        priority: task.priority || 'medium',
+        estimated_hours: 4
+      },
+      {
+        title: `Implementation & testing for ${task.title}`,
+        description: `Execute core workflow tasks and validate against specifications.`,
+        priority: isCritical ? 'high' : 'medium',
+        estimated_hours: 8
+      },
+      {
+        title: `Peer review and documentation sign-off`,
+        description: `Ensure documentation and compliance requirements are met.`,
+        priority: 'low',
+        estimated_hours: 2
+      }
+    ];
+
+    return {
+      task_id: task.id,
+      task_title: task.title,
+      feasibility_score: feasibility,
+      executive_summary: `Task "${task.title}" is currently ${task.status.toUpperCase()} with ${task.priority.toUpperCase()} priority. ${hasBlockers ? 'Resolution of upstream blockers is the immediate critical path.' : 'All operational prerequisites are clear for immediate execution.'}`,
+      action_plan: actionPlan,
+      blockers_and_risks: blockersAndRisks,
+      prerequisites: prerequisites,
+      estimated_completion_days: isCritical ? 5 : 3,
+      recommended_subtasks: recommendedSubtasks,
+      confidence_rating: confidence
     };
   }
 }

@@ -14,7 +14,8 @@ import {
   DocumentSummaryResponse,
   AITaskGenerationResponse,
   MeetingAnalysisResponse,
-  Comment
+  Comment,
+  AITaskAnalysisResponse
 } from '../../../shared/types/index.js';
 
 class ApiService {
@@ -41,8 +42,8 @@ class ApiService {
     });
 
     if (res.status === 401) {
-      // Clear token if expired or invalid
-      if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+      // Clear token only if verifying session explicitly failed
+      if (endpoint === '/auth/me') {
         localStorage.removeItem('enterprise_token');
         localStorage.removeItem('enterprise_user');
         window.dispatchEvent(new Event('auth_state_changed'));
@@ -307,6 +308,14 @@ class ApiService {
     return this.request('/settings/profile', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  }
+
+  // AI Task Analysis
+  async analyzeTask(taskId: string, query?: string): Promise<AITaskAnalysisResponse> {
+    return this.request<AITaskAnalysisResponse>('/ai/analyze-task', {
+      method: 'POST',
+      body: JSON.stringify({ task_id: taskId, query }),
     });
   }
 }

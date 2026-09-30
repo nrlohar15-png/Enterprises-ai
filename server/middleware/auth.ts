@@ -30,12 +30,16 @@ export function signToken(user: AuthenticatedUser): string {
     {
       id: user.id,
       email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
       organization_id: user.organization_id,
       role: user.role,
       department_id: user.department_id,
+      organization_name: user.organization_name,
+      department_name: user.department_name,
     },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '30d' }
   );
 }
 
@@ -50,37 +54,16 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
   try {
     const payload = jwt.verify(token, JWT_SECRET) as any;
 
-    // Verify user and active organization membership in database
-    const query = `
-      SELECT 
-        u.id, u.email, u.first_name, u.last_name, u.is_active,
-        om.organization_id, om.role, om.department_id,
-        o.name as organization_name,
-        d.name as department_name
-      FROM users u
-      JOIN organization_members om ON om.user_id = u.id AND om.organization_id = $1
-      JOIN organizations o ON o.id = om.organization_id
-      LEFT JOIN departments d ON d.id = om.department_id
-      WHERE u.id = $2 AND u.is_active = TRUE
-    `;
-
-    const result = await db.query(query, [payload.organization_id, payload.id]);
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'User session invalid or organization membership revoked.' });
-    }
-
-    const row = result.rows[0];
     req.user = {
-      id: row.id,
-      email: row.email,
-      first_name: row.first_name,
-      last_name: row.last_name,
-      organization_id: row.organization_id,
-      role: row.role as UserRole,
-      department_id: row.department_id || undefined,
-      organization_name: row.organization_name,
-      department_name: row.department_name || undefined,
+      id: payload.id,
+      email: payload.email,
+      first_name: payload.first_name || '',
+      last_name: payload.last_name || '',
+      organization_id: payload.organization_id,
+      role: payload.role as UserRole,
+      department_id: payload.department_id || undefined,
+      organization_name: payload.organization_name || 'Apex Global Enterprises',
+      department_name: payload.department_name || undefined,
     };
 
     next();

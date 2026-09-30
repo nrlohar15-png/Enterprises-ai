@@ -200,3 +200,25 @@ export const CreateCommentSchema = z.object({
   entity_id: z.string().uuid(),
   content: z.string().min(1, 'Comment cannot be empty'),
 });
+
+export const AITaskAnalysisSchema = z.object({
+  task_id: z.string(),
+  task_title: z.string(),
+  feasibility_score: z.number().min(0).max(100),
+  executive_summary: z.string(),
+  action_plan: z.array(z.object({
+    phase: z.string(),
+    steps: z.array(z.string()),
+  })),
+  blockers_and_risks: z.array(z.string()),
+  prerequisites: z.array(z.string()),
+  estimated_completion_days: z.number(),
+  recommended_subtasks: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    priority: z.enum(['low', 'medium', 'high', 'critical']),
+    estimated_hours: z.number().optional(),
+  })),
+  confidence_rating: z.enum(['high', 'medium', 'low']),
+});
+
