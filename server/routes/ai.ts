@@ -309,9 +309,9 @@ router.post('/analyze-task', authenticateToken, async (req: Request, res: Respon
 
     // Retrieve task dependencies
     const depRes = await db.query(
-      `SELECT td.dependency_type, pt.title as prerequisite_title, pt.status as prerequisite_status
+      `SELECT pt.title as prerequisite_title, pt.status as prerequisite_status
        FROM task_dependencies td
-       JOIN tasks pt ON pt.id = td.prerequisite_task_id
+       JOIN tasks pt ON pt.id = td.depends_on_task_id
        WHERE td.task_id = $1`,
       [task_id]
     );
@@ -326,7 +326,7 @@ router.post('/analyze-task', authenticateToken, async (req: Request, res: Respon
     return res.json(analysis);
   } catch (error: any) {
     console.error('AI analyze task error:', error);
-    return res.status(500).json({ error: 'Failed to analyze task with AI' });
+    return res.status(500).json({ error: error.message || 'Failed to analyze task with AI' });
   }
 });
 

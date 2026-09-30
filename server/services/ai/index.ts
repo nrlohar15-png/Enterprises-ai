@@ -598,7 +598,7 @@ Priority: "${task.priority}"
 Due Date: "${task.due_date || 'None'}"
 Department: "${task.department_name || 'Organization'}"
 Assignee: "${task.assignee_name || 'Unassigned'}"
-Dependencies: ${JSON.stringify(dependencies.map(d => ({ type: d.dependency_type, prereq: d.prerequisite_title, status: d.prerequisite_status })))}
+Dependencies: ${JSON.stringify(dependencies.map(d => ({ prereq: d.prerequisite_title, status: d.prerequisite_status })))}
 
 ${userQuery ? `[USER INQUIRY / FOCUS QUESTION]:\n"${userQuery}"` : ''}
 
