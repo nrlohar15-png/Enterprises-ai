@@ -22,6 +22,16 @@ export default defineConfig({
   },
   build: {
     outDir: path.resolve(__dirname, '../dist/client'),
-    emptyOutDir: true
+    emptyOutDir: true,
+    target: 'es2020',
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
+          lucide: ['lucide-react']
+        }
+      }
+    }
   }
 });

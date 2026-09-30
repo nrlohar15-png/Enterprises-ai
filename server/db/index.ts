@@ -58,6 +58,20 @@ class DatabaseService {
 
   private async runMigrations(): Promise<void> {
     try {
+      if (this.pgPool) {
+        try {
+          const check = await this.pgPool.query(
+            "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'organizations' LIMIT 1"
+          );
+          if (check.rows && check.rows.length > 0) {
+            console.log('Cloud database schema already provisioned. Skipping migrations.');
+            return;
+          }
+        } catch {
+          // ignore check error and proceed
+        }
+      }
+
       const migrationPath = path.resolve(process.cwd(), 'migrations/001_initial_schema.sql');
       if (fs.existsSync(migrationPath)) {
         const sql = fs.readFileSync(migrationPath, 'utf-8');
@@ -70,8 +84,7 @@ class DatabaseService {
         console.log('Database schema migrations applied successfully.');
       }
     } catch (err: any) {
-      console.error('Error applying migrations:', err.message);
-      throw err;
+      console.warn('Migration note (continuing startup):', err.message);
     }
   }
 
