@@ -24,11 +24,13 @@ class DatabaseService {
     if (dbUrl) {
       try {
         console.log('Attempting connection to external PostgreSQL database...');
+        const isRemote = dbUrl.includes('supabase') || dbUrl.includes('amazonaws') || dbUrl.includes('render') || dbUrl.includes('neon.tech');
         const pool = new pg.Pool({
           connectionString: dbUrl,
           connectionTimeoutMillis: 5000,
           max: 5, // Keep connection count minimal to respect free tier RAM limits
           idleTimeoutMillis: 10000,
+          ssl: isRemote ? { rejectUnauthorized: false } : undefined,
         });
 
         // Test connection
