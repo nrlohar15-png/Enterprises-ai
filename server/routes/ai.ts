@@ -282,7 +282,8 @@ router.post('/generate-report', authenticateToken, async (req: Request, res: Res
 router.post('/analyze-task', authenticateToken, async (req: Request, res: Response) => {
   try {
     const orgId = req.user!.organization_id;
-    const { task_id, query } = req.body;
+    const { query } = req.body;
+    const task_id = req.body.task_id || req.body.taskId;
 
     if (!task_id) {
       return res.status(400).json({ error: 'task_id is required' });

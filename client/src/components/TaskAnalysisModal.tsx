@@ -22,14 +22,14 @@ import { TaskStatusBadge, TaskPriorityBadge } from './Badges.js';
 
 interface TaskAnalysisModalProps {
   taskId: string | null;
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSubtasksCreated?: () => void;
 }
 
 export const TaskAnalysisModal: React.FC<TaskAnalysisModalProps> = ({
   taskId,
-  isOpen,
+  isOpen = true,
   onClose,
   onSubtasksCreated,
 }) => {
