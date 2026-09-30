@@ -62,6 +62,7 @@ export const App: React.FC = () => {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="assistant" element={<AIAssistantPage />} />
+        <Route path="ai" element={<Navigate to="/assistant" replace />} />
         <Route path="search" element={<SearchPage />} />
 
         {/* Tasks */}
