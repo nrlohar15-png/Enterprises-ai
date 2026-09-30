@@ -9,9 +9,9 @@
     "dev:server": "tsx watch server/index.ts",
     "dev:client": "vite --config client/vite.config.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build --config client/vite.config.ts",
-    "build:server": "tsc -p server/tsconfig.json",
-    "start": "node dist/server/index.js",
+    "build:client": "node --max-old-space-size=384 ./node_modules/vite/bin/vite.js build --config client/vite.config.ts",
+    "build:server": "node --max-old-space-size=384 ./node_modules/typescript/bin/tsc -p server/tsconfig.json",
+    "start": "node --max-old-space-size=384 dist/server/index.js",
     "seed": "tsx server/db/seed.ts"
   },
   "dependencies": {

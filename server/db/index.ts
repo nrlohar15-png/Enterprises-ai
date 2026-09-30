@@ -1,5 +1,4 @@
 import pg from 'pg';
-import { PGlite } from '@electric-sql/pglite';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,7 +13,7 @@ interface QueryResult<T = any> {
 
 class DatabaseService {
   private pgPool: pg.Pool | null = null;
-  private pglite: PGlite | null = null;
+  private pglite: any = null;
   private isInitialized = false;
 
   async init(): Promise<void> {
@@ -27,7 +26,9 @@ class DatabaseService {
         console.log('Attempting connection to external PostgreSQL database...');
         const pool = new pg.Pool({
           connectionString: dbUrl,
-          connectionTimeoutMillis: 3000,
+          connectionTimeoutMillis: 5000,
+          max: 5, // Keep connection count minimal to respect free tier RAM limits
+          idleTimeoutMillis: 10000,
         });
 
         // Test connection
@@ -42,6 +43,7 @@ class DatabaseService {
 
     if (!this.pgPool) {
       console.log('Initializing embedded PostgreSQL (PGlite engine)...');
+      const { PGlite } = await import('@electric-sql/pglite');
       this.pglite = new PGlite();
       console.log('Embedded PostgreSQL engine ready.');
     }
