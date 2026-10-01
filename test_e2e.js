@@ -32,7 +32,7 @@ async function runTests() {
   const loginRes = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'sarah.chen@apexglobal.com', password: 'Password123!' }),
+    body: JSON.stringify({ email: 'xyz12@gmail.com', password: 'qwerty1234' }),
   });
   const loginData = await loginRes.json();
   assert(loginRes.status === 200 && loginData.token, 'Login successful with JWT session token');
@@ -47,7 +47,7 @@ async function runTests() {
   // 3. User Session Verification
   const meRes = await fetch(`${BASE_URL}/auth/me`, { headers: authHeaders });
   const meData = await meRes.json();
-  assert(meRes.status === 200 && meData.user.email === 'sarah.chen@apexglobal.com', 'Session token verification authenticated correctly');
+  assert(meRes.status === 200 && meData.user.email === 'xyz12@gmail.com', 'Session token verification authenticated correctly');
 
   // 4. Personalized Dashboard
   console.log('\n--- 3. Testing Personalized Enterprise Dashboard ---');

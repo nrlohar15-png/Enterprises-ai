@@ -45,7 +45,10 @@ export async function ensureDatabaseReady() {
       await seedDatabase();
       isDbReady = true;
       console.log('Enterprise Database initialized and ready.');
-    })();
+    })().catch((err) => {
+      dbInitPromise = null;
+      throw err;
+    });
   }
   return dbInitPromise;
 }

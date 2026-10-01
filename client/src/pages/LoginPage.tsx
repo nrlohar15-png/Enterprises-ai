@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, Mail, Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, UserCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, UserCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
 const DEMO_ACCOUNTS = [
@@ -93,8 +93,7 @@ export const LoginPage: React.FC = () => {
               <label htmlFor="login-email" className="block text-xs font-semibold text-slate-400 mb-1.5">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <div>
                 <input
                   id="login-email"
                   name="email"
@@ -104,7 +103,7 @@ export const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
-                  className="enterprise-input pl-9"
+                  className="enterprise-input"
                   disabled={loading}
                 />
               </div>
@@ -116,7 +115,6 @@ export const LoginPage: React.FC = () => {
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   id="login-password"
                   name="password"
@@ -126,7 +124,7 @@ export const LoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="enterprise-input pl-9 pr-10"
+                  className="enterprise-input pr-10"
                   disabled={loading}
                 />
                 {/* Show / hide toggle */}

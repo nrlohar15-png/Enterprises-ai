@@ -4,16 +4,56 @@ import { db } from './index.js';
 export async function seedDatabase() {
   await db.init();
 
+  const adminEmail = 'xyz12@gmail.com';
+  const adminPassword = 'qwerty1234';
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+  const defaultPasswordHash = await bcrypt.hash('Password123!', 10);
+
   // Check if organizations already exist
   const existingOrgs = await db.query('SELECT count(*) as count FROM organizations');
   if (parseInt(existingOrgs.rows[0]?.count || '0', 10) > 0) {
-    console.log('Database already contains data, skipping seed.');
+    console.log('Database already contains data, verifying admin user credentials...');
+    try {
+      const existingUser = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [adminEmail]);
+      if (existingUser.rows.length > 0) {
+        await db.query(
+          'UPDATE users SET password_hash = $1, is_active = TRUE WHERE id = $2',
+          [adminPasswordHash, existingUser.rows[0].id]
+        );
+      } else {
+        const oldAdmin = await db.query('SELECT id FROM users WHERE LOWER(email) = $1', ['sarah.chen@apexglobal.com']);
+        if (oldAdmin.rows.length > 0) {
+          await db.query(
+            'UPDATE users SET email = $1, password_hash = $2, is_active = TRUE WHERE id = $3',
+            [adminEmail, adminPasswordHash, oldAdmin.rows[0].id]
+          );
+        } else {
+          const org = await db.query('SELECT id FROM organizations LIMIT 1');
+          const dept = await db.query('SELECT id FROM departments LIMIT 1');
+          if (org.rows.length > 0) {
+            const newAdmin = await db.query(
+              `INSERT INTO users (email, password_hash, first_name, last_name, title, is_active)
+               VALUES ($1, $2, 'Sarah', 'Chen', 'VP of Engineering', TRUE)
+               RETURNING id`,
+              [adminEmail, adminPasswordHash]
+            );
+            await db.query(
+              `INSERT INTO organization_members (organization_id, user_id, department_id, role)
+               VALUES ($1, $2, $3, 'organization_admin')
+               ON CONFLICT DO NOTHING`,
+              [org.rows[0].id, newAdmin.rows[0].id, dept.rows[0]?.id || null]
+            );
+          }
+        }
+      }
+      console.log(`Admin user ${adminEmail} verified with password.`);
+    } catch (err: any) {
+      console.warn('Admin user sync note:', err.message);
+    }
     return;
   }
 
   console.log('Seeding enterprise database with production-grade initial dataset...');
-
-  const passwordHash = await bcrypt.hash('qwerty1234', 10);
 
   // 1. Create Organization
   const orgResult = await db.query(
@@ -26,11 +66,11 @@ export async function seedDatabase() {
 
   // 2. Create Users
   const usersData = [
-    { email: 'xyz12@gmail.com', firstName: 'Sarah', lastName: 'Chen', title: 'VP of Engineering', role: 'organization_admin' },
-    { email: 'marcus.vance@apexglobal.com', firstName: 'Marcus', lastName: 'Vance', title: 'Product Director', role: 'manager' },
-    { email: 'elena.rostova@apexglobal.com', firstName: 'Elena', lastName: 'Rostova', title: 'Staff Frontend Architect', role: 'employee' },
-    { email: 'david.kim@apexglobal.com', firstName: 'David', lastName: 'Kim', title: 'Principal DevOps Lead', role: 'employee' },
-    { email: 'priya.patel@apexglobal.com', firstName: 'Priya', lastName: 'Patel', title: 'VP of Global Marketing', role: 'department_admin' },
+    { email: adminEmail, firstName: 'Sarah', lastName: 'Chen', title: 'VP of Engineering', role: 'organization_admin', hash: adminPasswordHash },
+    { email: 'marcus.vance@apexglobal.com', firstName: 'Marcus', lastName: 'Vance', title: 'Product Director', role: 'manager', hash: defaultPasswordHash },
+    { email: 'elena.rostova@apexglobal.com', firstName: 'Elena', lastName: 'Rostova', title: 'Staff Frontend Architect', role: 'employee', hash: defaultPasswordHash },
+    { email: 'david.kim@apexglobal.com', firstName: 'David', lastName: 'Kim', title: 'Principal DevOps Lead', role: 'employee', hash: defaultPasswordHash },
+    { email: 'priya.patel@apexglobal.com', firstName: 'Priya', lastName: 'Patel', title: 'VP of Global Marketing', role: 'department_admin', hash: defaultPasswordHash },
   ];
 
   const userIds: Record<string, string> = {};
@@ -40,14 +80,14 @@ export async function seedDatabase() {
       `INSERT INTO users (email, password_hash, first_name, last_name, title, is_active)
        VALUES ($1, $2, $3, $4, $5, TRUE)
        RETURNING id`,
-      [u.email, passwordHash, u.firstName, u.lastName, u.title]
+      [u.email, u.hash, u.firstName, u.lastName, u.title]
     );
     userIds[u.email] = userRes.rows[0].id;
   }
 
   // 3. Create Departments
   const departmentsData = [
-    { name: 'Engineering', code: 'ENG', description: 'Core platform development, cloud architecture, and cybersecurity', head: userIds['sarah.chen@apexglobal.com'] },
+    { name: 'Engineering', code: 'ENG', description: 'Core platform development, cloud architecture, and cybersecurity', head: userIds[adminEmail] },
     { name: 'Product', code: 'PROD', description: 'Product roadmap, enterprise features, UX research, and specifications', head: userIds['marcus.vance@apexglobal.com'] },
     { name: 'Marketing', code: 'MKT', description: 'Global brand awareness, growth marketing, enterprise sales enablement', head: userIds['priya.patel@apexglobal.com'] },
     { name: 'Operations', code: 'OPS', description: 'IT operations, vendor management, internal workflows, and facilities', head: userIds['david.kim@apexglobal.com'] },
@@ -88,7 +128,7 @@ export async function seedDatabase() {
       name: 'NextGen Cloud Migration',
       code: 'ENG',
       desc: 'Migrating legacy on-prem and multi-cloud services to unified AWS multi-region infrastructure with Kubernetes.',
-      owner: userIds['sarah.chen@apexglobal.com'],
+      owner: userIds[adminEmail],
       status: 'active',
       start: '2025-01-10',
       target: '2025-11-30'
@@ -153,7 +193,7 @@ export async function seedDatabase() {
       desc: 'Set up cron job and health checks to test restoring daily database snapshots in an isolated sandbox.',
       proj: projectIds['NextGen Cloud Migration'],
       dept: deptIds['ENG'],
-      creator: userIds['sarah.chen@apexglobal.com'],
+      creator: userIds[adminEmail],
       assignee: userIds['david.kim@apexglobal.com'],
       status: 'todo',
       priority: 'critical',
@@ -165,7 +205,7 @@ export async function seedDatabase() {
       desc: 'Upgrade all production kubernetes worker node groups to AWS EKS v1.28 with zero-downtime rolling updates.',
       proj: projectIds['NextGen Cloud Migration'],
       dept: deptIds['ENG'],
-      creator: userIds['sarah.chen@apexglobal.com'],
+      creator: userIds[adminEmail],
       assignee: userIds['david.kim@apexglobal.com'],
       status: 'in_progress',
       priority: 'high',
@@ -177,7 +217,7 @@ export async function seedDatabase() {
       desc: 'Collaborate with external red team auditor, patch SSL cipher configurations, and remediate CVEs.',
       proj: projectIds['SOC 2 Type II Compliance Audit'],
       dept: deptIds['ENG'],
-      creator: userIds['sarah.chen@apexglobal.com'],
+      creator: userIds[adminEmail],
       assignee: userIds['elena.rostova@apexglobal.com'],
       status: 'blocked',
       priority: 'critical',
@@ -201,7 +241,7 @@ export async function seedDatabase() {
       desc: 'Review legal terms with top 20 SaaS suppliers regarding GDPR chapter 3 data transfers and encryption standards.',
       proj: projectIds['SOC 2 Type II Compliance Audit'],
       dept: deptIds['OPS'],
-      creator: userIds['sarah.chen@apexglobal.com'],
+      creator: userIds[adminEmail],
       assignee: userIds['marcus.vance@apexglobal.com'],
       status: 'completed',
       priority: 'medium',
@@ -239,7 +279,7 @@ export async function seedDatabase() {
       category: 'SOP',
       dept: deptIds['ENG'],
       proj: projectIds['NextGen Cloud Migration'],
-      author: userIds['sarah.chen@apexglobal.com'],
+      author: userIds[adminEmail],
       visibility: 'organization',
       content: `Standard Operating Procedure: Enterprise Multi-Region Cloud Architecture
 
@@ -283,7 +323,7 @@ The on-call Incident Commander assumes complete operational command, establishes
       category: 'Report',
       dept: deptIds['FIN'],
       proj: null,
-      author: userIds['sarah.chen@apexglobal.com'],
+      author: userIds[adminEmail],
       visibility: 'organization',
       content: `Executive Summary: Q3 Financial Results
 
@@ -320,7 +360,7 @@ Current liquid cash reserves stand at $32.4M, representing 28 months of net oper
       orgId,
       deptIds['ENG'],
       projectIds['NextGen Cloud Migration'],
-      userIds['sarah.chen@apexglobal.com'],
+      userIds[adminEmail],
       'Weekly Architecture & Infrastructure Alignment Sync',
       meetingDate.toISOString(),
       ['Sarah Chen', 'David Kim', 'Elena Rostova', 'Marcus Vance'],
@@ -412,11 +452,11 @@ Decisions:
 
   // 11. Initial Activity Logs
   const sampleActivities = [
-    { action: 'user.login', entity_type: 'user', entity_id: userIds['sarah.chen@apexglobal.com'], user_id: userIds['sarah.chen@apexglobal.com'], details: { ip: '10.0.4.12', client: 'Enterprise SSO' } },
-    { action: 'task.create', entity_type: 'task', entity_id: taskIds['Deploy Automated Database Backup Verification & Restore Drill'], user_id: userIds['sarah.chen@apexglobal.com'], details: { priority: 'critical', title: 'Deploy Automated Database Backup Verification' } },
-    { action: 'document.create', entity_type: 'document', entity_id: null, user_id: userIds['sarah.chen@apexglobal.com'], details: { title: 'Enterprise Cloud Infrastructure Architecture & Security SOP' } },
-    { action: 'meeting.create', entity_type: 'meeting', entity_id: meetingId, user_id: userIds['sarah.chen@apexglobal.com'], details: { title: 'Weekly Architecture & Infrastructure Alignment Sync' } },
-    { action: 'ai.insights_generated', entity_type: 'ai_insights', entity_id: null, user_id: userIds['sarah.chen@apexglobal.com'], details: { count: 3, categories: ['deadline', 'dependency', 'workload'] } },
+    { action: 'user.login', entity_type: 'user', entity_id: userIds[adminEmail], user_id: userIds[adminEmail], details: { ip: '10.0.4.12', client: 'Enterprise SSO' } },
+    { action: 'task.create', entity_type: 'task', entity_id: taskIds['Deploy Automated Database Backup Verification & Restore Drill'], user_id: userIds[adminEmail], details: { priority: 'critical', title: 'Deploy Automated Database Backup Verification' } },
+    { action: 'document.create', entity_type: 'document', entity_id: null, user_id: userIds[adminEmail], details: { title: 'Enterprise Cloud Infrastructure Architecture & Security SOP' } },
+    { action: 'meeting.create', entity_type: 'meeting', entity_id: meetingId, user_id: userIds[adminEmail], details: { title: 'Weekly Architecture & Infrastructure Alignment Sync' } },
+    { action: 'ai.insights_generated', entity_type: 'ai_insights', entity_id: null, user_id: userIds[adminEmail], details: { count: 3, categories: ['deadline', 'dependency', 'workload'] } },
   ];
 
   for (const act of sampleActivities) {
@@ -428,8 +468,7 @@ Decisions:
   }
 
   console.log('Enterprise database seeded successfully!');
-  console.log('Demo Login Credentials:');
-  console.log('Admin Email: sarah.chen@apexglobal.com | Password: Password123!');
+  console.log(`Admin Email: ${adminEmail} | Password: ${adminPassword}`);
   console.log('Manager Email: marcus.vance@apexglobal.com | Password: Password123!');
   console.log('Employee Email: elena.rostova@apexglobal.com | Password: Password123!');
 }
