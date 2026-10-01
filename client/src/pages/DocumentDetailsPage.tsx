@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Sparkles, User, Calendar, FileText, Loader2, MessageSquare, Send, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Sparkles, User, Calendar, Loader2, MessageSquare, Send } from 'lucide-react';
 import { api } from '../services/api.js';
 import { Document, Department, Project, Comment, DocumentSummaryResponse } from '../../../shared/types/index.js';
 import { DocumentFormModal } from '../components/DocumentFormModal.js';
@@ -114,7 +114,7 @@ export const DocumentDetailsPage: React.FC = () => {
           <button
             onClick={handleRunAISummary}
             disabled={summarizing}
-            className="enterprise-btn-primary text-xs py-1.5 px-3"
+            className="enterprise-btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5"
           >
             {summarizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             <span>Run AI Summary</span>

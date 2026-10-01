@@ -40,7 +40,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       params.push(project_id);
     }
     if (search) {
-      query += ` AND (d.title ILIKE $${paramIndex} OR d.content ILIKE $${paramIndex} OR d.summary ILIKE $${paramIndex})`;
+      query += ` AND (LOWER(d.title) LIKE LOWER($${paramIndex}) OR LOWER(d.content) LIKE LOWER($${paramIndex}) OR LOWER(d.summary) LIKE LOWER($${paramIndex}))`;
       params.push(`%${search}%`);
       paramIndex++;
     }

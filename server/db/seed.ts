@@ -13,7 +13,7 @@ export async function seedDatabase() {
 
   console.log('Seeding enterprise database with production-grade initial dataset...');
 
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+  const passwordHash = await bcrypt.hash('qwerty1234', 10);
 
   // 1. Create Organization
   const orgResult = await db.query(
@@ -26,7 +26,7 @@ export async function seedDatabase() {
 
   // 2. Create Users
   const usersData = [
-    { email: 'sarah.chen@apexglobal.com', firstName: 'Sarah', lastName: 'Chen', title: 'VP of Engineering', role: 'organization_admin' },
+    { email: 'xyz12@gmail.com', firstName: 'Sarah', lastName: 'Chen', title: 'VP of Engineering', role: 'organization_admin' },
     { email: 'marcus.vance@apexglobal.com', firstName: 'Marcus', lastName: 'Vance', title: 'Product Director', role: 'manager' },
     { email: 'elena.rostova@apexglobal.com', firstName: 'Elena', lastName: 'Rostova', title: 'Staff Frontend Architect', role: 'employee' },
     { email: 'david.kim@apexglobal.com', firstName: 'David', lastName: 'Kim', title: 'Principal DevOps Lead', role: 'employee' },

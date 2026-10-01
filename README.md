@@ -164,7 +164,7 @@ The platform comes pre-seeded with sample enterprise data and 1-click role prese
 
 | Role | Name | Email | Password |
 | :--- | :--- | :--- | :--- |
-| **Organization Admin** | Sarah Chen | `sarah.chen@apexglobal.com` | `Password123!` |
+| **Organization Admin** | Sarah Chen | `xyz12@gmail.com` | `qwerty1234` |
 | **Manager** | Marcus Vance | `marcus.vance@apexglobal.com` | `Password123!` |
 | **Staff Employee** | Elena Rostova | `elena.rostova@apexglobal.com` | `Password123!` |
 

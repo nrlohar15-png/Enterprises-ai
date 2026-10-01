@@ -26,7 +26,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         SELECT d.id, d.title, d.content, d.summary, d.category, d.updated_at, dept.name as department_name
         FROM documents d
         LEFT JOIN departments dept ON dept.id = d.department_id
-        WHERE d.organization_id = $1 AND (d.title ILIKE $2 OR d.content ILIKE $2 OR d.summary ILIKE $2)
+        WHERE d.organization_id = $1 AND (LOWER(d.title) LIKE LOWER($2) OR LOWER(d.content) LIKE LOWER($2) OR LOWER(d.summary) LIKE LOWER($2))
       `;
       const docParams: any[] = [orgId, searchTerm];
       if (departmentId) {
@@ -62,7 +62,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         SELECT t.id, t.title, t.description, t.status, t.priority, t.updated_at, dept.name as department_name
         FROM tasks t
         LEFT JOIN departments dept ON dept.id = t.department_id
-        WHERE t.organization_id = $1 AND (t.title ILIKE $2 OR t.description ILIKE $2)
+        WHERE t.organization_id = $1 AND (LOWER(t.title) LIKE LOWER($2) OR LOWER(t.description) LIKE LOWER($2))
       `;
       const taskParams: any[] = [orgId, searchTerm];
       if (departmentId) {
@@ -93,7 +93,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         SELECT p.id, p.name, p.description, p.status, p.updated_at, dept.name as department_name
         FROM projects p
         LEFT JOIN departments dept ON dept.id = p.department_id
-        WHERE p.organization_id = $1 AND (p.name ILIKE $2 OR p.description ILIKE $2)
+        WHERE p.organization_id = $1 AND (LOWER(p.name) LIKE LOWER($2) OR LOWER(p.description) LIKE LOWER($2))
       `;
       const projParams: any[] = [orgId, searchTerm];
       if (departmentId) {
@@ -124,7 +124,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         SELECT m.id, m.title, m.raw_notes, m.summary, m.updated_at, dept.name as department_name
         FROM meetings m
         LEFT JOIN departments dept ON dept.id = m.department_id
-        WHERE m.organization_id = $1 AND (m.title ILIKE $2 OR m.raw_notes ILIKE $2 OR m.summary ILIKE $2)
+        WHERE m.organization_id = $1 AND (LOWER(m.title) LIKE LOWER($2) OR LOWER(m.raw_notes) LIKE LOWER($2) OR LOWER(m.summary) LIKE LOWER($2))
       `;
       const meetParams: any[] = [orgId, searchTerm];
       if (departmentId) {

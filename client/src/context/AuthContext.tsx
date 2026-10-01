@@ -19,21 +19,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(true);
 
   const initAuth = async () => {
-    const token = localStorage.getItem('enterprise_token');
+    const token      = localStorage.getItem('enterprise_token');
     const storedUser = localStorage.getItem('enterprise_user');
 
     if (token && storedUser) {
+      // Optimistically restore the cached user immediately
+      const cachedUser = JSON.parse(storedUser);
+      setUser(cachedUser);
       try {
-        setUser(JSON.parse(storedUser));
-        // Verify with backend
+        // Then verify with backend and refresh profile data
         const res = await api.getMe();
         setUser(res.user);
         localStorage.setItem('enterprise_user', JSON.stringify(res.user));
-      } catch (err) {
-        console.warn('Session verification failed, logging out');
-        localStorage.removeItem('enterprise_token');
-        localStorage.removeItem('enterprise_user');
-        setUser(null);
+      } catch (err: any) {
+        // Only clear session on explicit 401 (token invalid/expired)
+        // Keep the cached user for network errors, cold starts, etc.
+        if (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('Invalid token')) {
+          console.warn('Token rejected by server — clearing session');
+          localStorage.removeItem('enterprise_token');
+          localStorage.removeItem('enterprise_user');
+          setUser(null);
+        } else {
+          console.warn('Could not verify session with backend (server may be starting up), keeping cached session.');
+          // Keep cachedUser — already set above
+        }
       }
     } else {
       setUser(null);
@@ -73,12 +82,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const switchDemoUser = async (role: 'admin' | 'manager' | 'employee') => {
     setLoading(true);
-    let email = 'sarah.chen@apexglobal.com'; // admin
-    if (role === 'manager') email = 'marcus.vance@apexglobal.com';
-    if (role === 'employee') email = 'elena.rostova@apexglobal.com';
+    let email = 'xyz12@gmail.com';      // admin
+    let password = 'qwerty1234';        // admin password
+    if (role === 'manager') { email = 'marcus.vance@apexglobal.com'; password = 'Password123!'; }
+    if (role === 'employee') { email = 'elena.rostova@apexglobal.com'; password = 'Password123!'; }
 
     try {
-      await login(email, 'Password123!');
+      await login(email, password);
     } catch (e: any) {
       console.error('Demo login switch error:', e);
     } finally {

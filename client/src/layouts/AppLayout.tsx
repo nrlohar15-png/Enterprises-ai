@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -25,6 +25,7 @@ import {
 import { useAuth } from '../context/AuthContext.js';
 import { GlobalSearchModal } from '../components/GlobalSearchModal.js';
 import { AITaskGeneratorModal } from '../components/AITaskGeneratorModal.js';
+import { api } from '../services/api.js';
 
 export const AppLayout: React.FC = () => {
   const { user, logout, switchDemoUser } = useAuth();
@@ -32,8 +33,16 @@ export const AppLayout: React.FC = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [aiTaskModalOpen, setAiTaskModalOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [departments, setDepartments] = useState<any[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Fetch departments for AI Task Generator modal
+  useEffect(() => {
+    if (user) {
+      api.getDepartments().then(setDepartments).catch(() => {});
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -317,9 +326,10 @@ export const AppLayout: React.FC = () => {
         isOpen={aiTaskModalOpen}
         onClose={() => setAiTaskModalOpen(false)}
         onTasksCreated={() => {
-          window.location.href = '/tasks';
+          setAiTaskModalOpen(false);
+          navigate('/tasks');
         }}
-        departments={[]}
+        departments={departments}
       />
     </div>
   );

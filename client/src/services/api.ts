@@ -42,8 +42,9 @@ class ApiService {
     });
 
     if (res.status === 401) {
-      // Clear token only if verifying session explicitly failed
-      if (endpoint === '/auth/me') {
+      // Don't clear session here for /auth/me — AuthContext.initAuth handles that.
+      // For all other endpoints, a 401 means the active token is rejected; clear session.
+      if (endpoint !== '/auth/me') {
         localStorage.removeItem('enterprise_token');
         localStorage.removeItem('enterprise_user');
         window.dispatchEvent(new Event('auth_state_changed'));
